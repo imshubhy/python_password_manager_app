@@ -23,7 +23,7 @@ def load_key():          # need to have the key for encrypting and decrypting th
 
 # Function to encrypt password
 def encrypt_password(password, key):
-    cipher_suite = Fernet(key)
+    cipher_suite = Fernet(key)       # object
     return cipher_suite.encrypt(password.encode()).decode()
 
 
@@ -38,12 +38,12 @@ def view_passwords(key):
     try:
         with open('passwords.txt', 'r') as f:
             for line in f.readlines():
-                data = line.rstrip()
-                user, encrypted_pass = data.split("|")
+                data = line.rstrip()   # removing trailing space
+                user, encrypted_pass = data.split("|")   # getting user and password from txt
                 decrypted_pass = decrypt_password(encrypted_pass, key)
                 print("User:", user, "| Password:", decrypted_pass)
     except FileNotFoundError:
-        print("Password file not found.")
+        print("Password file not found, add password first!")
 
 
 # Function to add a new password
@@ -60,16 +60,25 @@ def add_password(key):
 def main():
     key = load_key()
     while True:
-        mode = input(
-            "Would you like to add a new password or view existing ones (view, add), press q to quit? ").lower()
-        if mode == "q":
-            break
-        elif mode == "view":
+        print("\nPassword Manager Menu:")
+        print("1. View Passwords")
+        print("2. Add Password")
+        print("3. Generate New Encryption Key")
+        print("4. Quit")
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
             view_passwords(key)
-        elif mode == "add":
+        elif choice == "2":
             add_password(key)
+        elif choice == "3":
+            generate_key()
+            key = load_key()
+        elif choice == "4":
+            print("Exiting Password Manager. Goodbye!")
+            break
         else:
-            print("Invalid mode.")
+            print("Invalid choice. Please enter a valid option.")
 
 
 if __name__ == "__main__":
