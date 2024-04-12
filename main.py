@@ -1,5 +1,6 @@
 from cryptography.fernet import Fernet
 import os
+import mysql.connector
 
 
 # Function to generate and save encryption key
@@ -34,14 +35,16 @@ def decrypt_password(encrypted_password, key):
 # Function to view passwords
 def view_passwords(key):
     try:
-        with open('passwords.txt', 'r') as f:
-            for line in f.readlines():
-                data = line.rstrip()  # removing trailing space
-                user, encrypted_pass = data.split("|")  # getting user and password from txt
-                decrypted_pass = decrypt_password(encrypted_pass, key)
-                print("User:", user, "| Password:", decrypted_pass)
-    except FileNotFoundError:
-        print("Password file not found, add password first!")
+        cursor.execute("SELECT user, password FROM passwords")
+        rows = cursor.fetchall()
+        if not rows:
+            print("No saved passwords. Please add passwords first.")
+            return
+        for user, encrypted_pass in rows:
+            decrypted_pass = decrypt_password(encrypted_pass, key)
+            print("User:", user, "| Password:", decrypted_pass)
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
 
 
 # Function to add a new password
@@ -49,14 +52,17 @@ def add_password(key):
     name = input('Account Name: ')
     pwd = input("Password: ")
     encrypted_pwd = encrypt_password(pwd, key)
-    with open('passwords.txt', 'a') as f:
-        f.write(name + "|" + encrypted_pwd + "\n")
-    print("Password added successfully.")
+    try:
+        cursor.execute("INSERT INTO passwords (user, password) VALUES (%s, %s)", (name, encrypted_pwd))
+        db.commit()
+        print("Password added successfully.")
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        db.rollback()
 
 
 # Main function
-def main():
-    key = load_key()
+def main_menu(key):
     while True:
         print("\nPassword Manager Menu:")
         print("1. View Passwords")
@@ -76,4 +82,19 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Connect to MySQL
+    try:
+        db = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            database="projectdb"
+        )
+        cursor = db.cursor()
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS passwords (id INT AUTO_INCREMENT PRIMARY KEY, user VARCHAR(255), password TEXT)")
+        db.commit()
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
+    key = load_key()
+    main_menu(key)
